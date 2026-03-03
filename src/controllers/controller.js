@@ -1,9 +1,13 @@
 const Ticket = require('../models/ticketSchema');
 
 exports.createTicket = async (req, res) => {
-    const ticket = new Ticket(req.body);
-    await ticket.save();
-    res.json(ticket);
+    try {
+        const ticket = new Ticket(req.body);
+        await ticket.save();
+        res.status(201).json(ticket);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear el ticket' });
+    }
 }
 
 exports.getTickets = async (req, res) => {
