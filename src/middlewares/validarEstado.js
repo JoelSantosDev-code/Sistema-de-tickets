@@ -14,10 +14,17 @@ module.exports = async function validarCambioEstado(req, res, next) {
         if (!ticket) {
             return res.status(404).json({ message: 'Ticket no encontrado' });
         }
+
         const estadoActual = ticket.estado;
+        if (estado === estadoActual) {
+            return res.status(400).json({
+                message: `El ticket ya está en estado ${estado}`
+            });
+        }
+
         //Validar que no se pueda cambiar a "Cerrado" si el estado actual no es "Resuelto"
         if (estado === 'Cerrado' && estadoActual !== 'Resuelto') {
-            return res.status(400).json({ message: 'Solo se puede cambiar a Cerrado si el estado actual es Resuelto' });
+            return res.status(400).json({ message: 'Solo se puede cerrar un ticket si el estado actual es Resuelto' });
         }
         //No resolver un ticket si esta cerrado
         if (estado === 'Resuelto' && estadoActual === 'Cerrado') {

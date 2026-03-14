@@ -16,25 +16,23 @@ const ticketSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 //PRE-SAVE HOOK PARA GENERAR FOLIO ÚNICO
-ticketSchema.pre("save", async function (next) {
+ticketSchema.pre("save", async function () {
     //Solo generar el folio si el documento es nuevo
     if (!this.isNew) {
-        return next();
+        return;
     }
-    try {
-        const currentYear = new Date().getFullYear();
 
-        const counterDoc = await Counter.findOneAndUpdate(
-            { name: `ticket-${currentYear}` },
-            { $inc: { seq: 1 } },
-            { new: true, upsert: true }
-        );
-        const paddedSeq = String(counterDoc.seq).padStart(4, '0');
-        this.folio = `TCK-${currentYear}-${paddedSeq}`;
-        next();
-    } catch (err) {
-        next(err);
-    }
+    const currentYear = new Date().getFullYear();
+
+    const counterDoc = await Counter.findOneAndUpdate(
+        { name: `ticket-${currentYear}` },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+    );
+    const paddedSeq = String(counterDoc.seq).padStart(4, '0');
+    this.folio = `TCK-${currentYear}-${paddedSeq}`;
+
+
 });
 
 const Ticket = mongoose.model('Ticket', ticketSchema);

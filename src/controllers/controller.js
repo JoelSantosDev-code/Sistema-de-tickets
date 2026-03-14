@@ -1,4 +1,5 @@
 const Ticket = require('../models/ticketSchema');
+const validacionEstado = require('../middlewares/validarEstado');
 
 exports.createTicket = async (req, res) => {
     try {
@@ -6,19 +7,34 @@ exports.createTicket = async (req, res) => {
         await ticket.save();
         res.status(201).json(ticket);
     } catch (error) {
-        res.status(500).json({ error: 'Error al crear el ticket' });
+        console.error("Error real:", error);
+        res.status(500).json({ error: error.message });
     }
 }
 
 exports.getTickets = async (req, res) => {
-    const tickets = await Ticket.find();
-    res.json(tickets);
+    try {
+        const filtrosPermitidos = ['estado', 'prioridad', 'usuario', 'folio'];
+        const filter = {};
+
+        filtrosPermitidos.forEach(filtro => {
+            if (req.query[filtro]) {
+                filter[filtro] = req.query[filtro];
+            }
+        });
+
+        const tickets = await Ticket.find(filter);
+        res.json(tickets);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener los tickets' });
+    }
+
 };
 
 exports.addComentario = async (req, res) => {
     try {
-        const { comentario } = req.body;
-        if (!comentario) {
+        const { mensaje } = req.body;
+        if (!mensaje) {
             return res.status(400).json({ error: 'El campo mensaje es obligatorio' });
         }
         const ticket = await Ticket.findById(req.params.id);
@@ -31,7 +47,7 @@ exports.addComentario = async (req, res) => {
         }
         //Agregar el nuevo comentario al array de comentarios del ticket
         ticket.comentarios.push({
-            mensaje: comentario,
+            mensaje: mensaje,
             fecha: new Date()
         });
         //Cambiar el estado a "En Proceso" si el ticket estaba "Abierto" y si esta "Resuelto" cambiarlo a "En Proceso"
@@ -50,7 +66,16 @@ exports.cambioEstado = async (req, res) => {
     try {
         const { estado } = req.body;
         const ticket = req.ticket; //Obtenemos el ticket validado en el middleware
+
+        const estadoAnterior = ticket.estado;
+
+        //cambio de estado
         ticket.estado = estado;
+
+        //Agregar comentario automatico
+        ticket.comentarios.push({
+            mensaje: `Estado cambiado de "${estadoAnterior}" a "${estado}"`
+        });
         await ticket.save();
         res.json(ticket);
     } catch (error) {
